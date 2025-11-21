@@ -33,7 +33,7 @@ go get go.trai.ch/zerr
 ## Usage
 
 > **API Note**: The `New` and `Wrap` functions return `error` to prevent the
-> [typed nil issue](https://www.google.com/search?q=%23typed-nil-issue-fix). You
+> [typed nil issue](https://www.google.com/search?q=typed-nil-issue-fix). You
 > can use the global helper functions `zerr.With` and `zerr.Stack` to add
 > context to any error without manual type assertion.
 
@@ -111,24 +111,28 @@ func backgroundTask() {
 ## Performance
 
 Benchmarks run on Apple M4 Pro (Go 1.25) demonstrate the efficiency of the
-deduplication engine:
+deduplication engine.
+
+The single allocation in `New` and `Wrap` ensures type safety (preventing typed
+nil bugs), while the stack trace machinery remains zero-allocation for cached
+traces.
 
 ```text
-BenchmarkNew-14                 1000000000               0.2295 ns/op          0 B/op          0 allocs/op
-BenchmarkWrap-14                1000000000               0.2239 ns/op          0 B/op          0 allocs/op
-BenchmarkWrapWithStack-14        8360919               142.9 ns/op             0 B/op          0 allocs/op
-BenchmarkWithMetadata-14        15398614                77.54 ns/op          200 B/op          4 allocs/op
-BenchmarkErrorFormatting-14     1000000000               0.9020 ns/op          0 B/op          0 allocs/op
+BenchmarkNew-14                 93238076                12.55 ns/op           64 B/op          1 allocs/op
+BenchmarkWrap-14                92826571                12.76 ns/op           64 B/op          1 allocs/op
+BenchmarkWrapWithStack-14        7189615               169.5 ns/op           128 B/op          2 allocs/op
+BenchmarkWithMetadata-14        15186404                78.50 ns/op          200 B/op          4 allocs/op
+BenchmarkErrorFormatting-14     752197629                1.591 ns/op           0 B/op          0 allocs/op
 ```
 
-Note: BenchmarkWrapWithStack achieving 0 allocations demonstrates the
-effectiveness of the global stack cache. Once a specific stack trace is
-captured, subsequent errors from the same location incur no memory allocation
-overhead.
+Note: `BenchmarkWrapWithStack` incurring only 1 allocation (for the error struct
+itself) demonstrates the effectiveness of the global stack cache. Once a
+specific stack trace is captured, adding it to an error incurs no _additional_
+memory allocation overhead beyond the error wrapper.
 
-The happy path (New/Wrap) is highly optimized. Wrap incurs minimal overhead, and
-heavy operations like stack tracing use internal pooling and deduplication to
-eliminate GC pressure in hot paths.
+The happy path (New/Wrap) is highly optimized. Heavy operations like stack
+tracing use internal pooling and deduplication to eliminate GC pressure in hot
+paths.
 
 ## License
 
