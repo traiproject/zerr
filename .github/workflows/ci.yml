@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Test and Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # Using 1.25 as specified in your go.mod
+          go-version: '1.25'
+          check-latest: true
+          cache: true
+
+      - name: Verify Dependencies
+        run: go mod verify
+
+      - name: Run Tests
+        # Running with -race is critical for this library as it handles goroutine safety/defer
+        run: go test -v -race ./...
+
+      - name: Run Benchmarks
+        # Run benchmarks to ensure no regressions, but don't fail on performance
+        run: go test -bench=. -run=^$ ./...
+
+      - name: Build Example
+        # The example module has a replace directive pointing to ../ so we test it explicitly
+        run: |
+          cd example
+          go build -v ./...
