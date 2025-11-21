@@ -88,7 +88,7 @@ func With(err error, key string, value any) error {
 // Stack captures the stack trace for the error.
 // If err is already a *Error, it attaches the stack trace directly.
 // If err is a standard error, it wraps it to capture the stack trace.
-func Stack(err error) error {
+func StackStack(err error) error {
 	if err == nil {
 		return nil
 	}
