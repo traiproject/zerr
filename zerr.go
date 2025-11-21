@@ -67,6 +67,34 @@ func Wrap(err error, message string) error {
 	}
 }
 
+// With attaches a key-value pair to an error.
+// If err is already a *Error, it attaches the metadata directly.
+// If err is a standard error, it wraps it to allow attaching metadata.
+func With(err error, key string, value any) error {
+	if err == nil {
+		return nil
+	}
+	if z, ok := err.(*Error); ok {
+		return z.With(key, value)
+	}
+	// Upgrade standard error to zerr.Error so we can attach metadata
+	return Wrap(err, "").(*Error).With(key, value)
+}
+
+// Stack captures the stack trace for the error.
+// If err is already a *Error, it attaches the stack trace directly.
+// If err is a standard error, it wraps it to capture the stack trace.
+func Stack(err error) error {
+	if err == nil {
+		return nil
+	}
+	if z, ok := err.(*Error); ok {
+		return z.WithStack()
+	}
+	// Upgrade standard error to zerr.Error so we can attach stack trace
+	return Wrap(err, "").(*Error).WithStack()
+}
+
 // With attaches a key-value pair to the error as metadata.
 func (e *Error) With(key string, value any) *Error {
 	// Create a new error with the additional metadata
@@ -101,6 +129,10 @@ func (e *Error) WithStack() *Error {
 func (e *Error) Error() string {
 	if e.cause == nil {
 		return e.message
+	}
+	// Avoid ": cause" output if message is empty
+	if e.message == "" {
+		return e.cause.Error()
 	}
 	return fmt.Sprintf("%s: %s", e.message, e.cause.Error())
 }

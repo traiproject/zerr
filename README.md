@@ -17,7 +17,8 @@ and structured metadata.
 - **Native `slog` Integration**: Automatic structured logging with
   `slog.LogValuer` implementation
 - **Goroutine Safety**: Safe recovery from panics in goroutines with `Defer()`
-- **Typed Nil Issue Fix**: Fixed the common Go bug where nil pointers with types aren't truly nil
+- **Typed Nil Issue Fix**: Fixed the common Go bug where nil pointers with types
+  aren't truly nil
 
 ## Requirements
 
@@ -31,12 +32,15 @@ go get go.trai.ch/zerr
 
 ## Usage
 
-> **API Note (v0.2+)**: The `New` and `Wrap` functions now return `error` instead of `*Error` to fix the [typed nil issue](#typed-nil-issue-fix). To use methods like `With` and `WithStack`, you must cast the result to `*zerr.Error`.
+> **API Note**: The `New` and `Wrap` functions return `error` to prevent the
+> [typed nil issue](https://www.google.com/search?q=%23typed-nil-issue-fix). You
+> can use the global helper functions `zerr.With` and `zerr.Stack` to add
+> context to any error without manual type assertion.
 
 ### Basic Error Creation
 
 ```go
-import "go.trai.ch/zerr
+import "go.trai.ch/zerr"
 
 // Create a new error
 err := zerr.New("something went wrong")
@@ -47,34 +51,35 @@ err = zerr.Wrap(err, "failed to process request")
 
 ### Adding Metadata
 
+You can add metadata using the global helper (works with any error) or by method
+chaining (requires casting).
+
 ```go
-// Add structured metadata
+// Option 1: Use the global helper (easiest)
+// Automatically upgrades standard errors to zerr.Error
 err := zerr.New("database error")
+err = zerr.With(err, "table", "users")
+
+// Option 2: Method chaining (fastest for multiple fields)
+// Requires type assertion since New() returns standard error
 if zerrErr, ok := err.(*zerr.Error); ok {
-    err = zerrErr.With("table", "users").
-        With("operation", "insert").
+    err = zerrErr.With("operation", "insert").
         With("user_id", 12345)
 }
 ```
 
 ### Stack Traces
 
+Capture stack traces easily using the global `Stack` helper.
+
 ```go
 // Capture stack trace lazily
 err := zerr.New("critical failure")
-if zerrErr, ok := err.(*zerr.Error); ok {
-    err = zerrErr.WithStack()
-}
+err = zerr.Stack(err)
 
-// Stack traces are deduplicated and cached
-err1 := zerr.New("error")
-if zerrErr, ok := err1.(*zerr.Error); ok {
-    err1 = zerrErr.WithStack()
-}
-err2 := zerr.New("another error")
-if zerrErr, ok := err2.(*zerr.Error); ok {
-    err2 = zerrErr.WithStack() // Same stack trace, reused
-}
+// Works with standard errors too (upgrades them)
+stdErr := errors.New("standard Go error")
+err = zerr.Stack(stdErr)
 ```
 
 ### Logging with slog
@@ -128,6 +133,3 @@ eliminate GC pressure in hot paths.
 ## License
 
 MIT
-
-```
-```
