@@ -77,8 +77,12 @@ func With(err error, key string, value any) error {
 	if z, ok := err.(*Error); ok {
 		return z.With(key, value)
 	}
-	// Upgrade standard error to zerr.Error so we can attach metadata
-	return Wrap(err, "").(*Error).With(key, value)
+	// Upgrade standard error to zerr.Error safely
+	wrapped := Wrap(err, "")
+	if z, ok := wrapped.(*Error); ok {
+		return z.With(key, value)
+	}
+	return wrapped
 }
 
 // Stack captures the stack trace for the error.
@@ -91,8 +95,12 @@ func Stack(err error) error {
 	if z, ok := err.(*Error); ok {
 		return z.WithStack()
 	}
-	// Upgrade standard error to zerr.Error so we can attach stack trace
-	return Wrap(err, "").(*Error).WithStack()
+	// Upgrade standard error to zerr.Error safely
+	wrapped := Wrap(err, "")
+	if z, ok := wrapped.(*Error); ok {
+		return z.WithStack()
+	}
+	return wrapped
 }
 
 // With attaches a key-value pair to the error as metadata.
