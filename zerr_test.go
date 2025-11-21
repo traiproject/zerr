@@ -105,6 +105,84 @@ func TestWithStack(t *testing.T) {
 	}
 }
 
+func TestPackageWith(t *testing.T) {
+	// Test with *Error
+	testErr := New("test")
+	withErr := With(testErr, "key", "value")
+	if withErr == nil {
+		t.Fatal("Expected non-nil error")
+	}
+	zerr, ok := withErr.(*Error)
+	if !ok {
+		t.Fatalf("Expected *Error type, got %T", withErr)
+	}
+	if len(zerr.metadata) != 1 {
+		t.Errorf("Expected 1 metadata item, got %d", len(zerr.metadata))
+	}
+	if zerr.metadata[0].key.Value() != "key" || zerr.metadata[0].value != "value" {
+		t.Errorf("Unexpected metadata: %v", zerr.metadata[0])
+	}
+
+	// Test with standard error
+	stdErr := errors.New("standard error")
+	withStdErr := With(stdErr, "key", "value")
+	if withStdErr == nil {
+		t.Fatal("Expected non-nil error")
+	}
+	zerrStd, ok := withStdErr.(*Error)
+	if !ok {
+		t.Fatalf("Expected *Error type, got %T", withStdErr)
+	}
+	if len(zerrStd.metadata) != 1 {
+		t.Errorf("Expected 1 metadata item, got %d", len(zerrStd.metadata))
+	}
+	if zerrStd.metadata[0].key.Value() != "key" || zerrStd.metadata[0].value != "value" {
+		t.Errorf("Unexpected metadata: %v", zerrStd.metadata[0])
+	}
+
+	// Test with nil error
+	nilErr := With(nil, "key", "value")
+	if nilErr != nil {
+		t.Errorf("Expected nil error, got %v", nilErr)
+	}
+}
+
+func TestPackageWithStack(t *testing.T) {
+	// Test with *Error
+	testErr := New("test")
+	stackErr := WithStack(testErr)
+	if stackErr == nil {
+		t.Fatal("Expected non-nil error")
+	}
+	zerr, ok := stackErr.(*Error)
+	if !ok {
+		t.Fatalf("Expected *Error type, got %T", stackErr)
+	}
+	if zerr.stack == nil {
+		t.Error("Expected stack trace to be captured")
+	}
+
+	// Test with standard error
+	stdErr := errors.New("standard error")
+	stackStdErr := WithStack(stdErr)
+	if stackStdErr == nil {
+		t.Fatal("Expected non-nil error")
+	}
+	zerrStd, ok := stackStdErr.(*Error)
+	if !ok {
+		t.Fatalf("Expected *Error type, got %T", stackStdErr)
+	}
+	if zerrStd.stack == nil {
+		t.Error("Expected stack trace to be captured")
+	}
+
+	// Test with nil error
+	nilErr := WithStack(nil)
+	if nilErr != nil {
+		t.Errorf("Expected nil error, got %v", nilErr)
+	}
+}
+
 func TestUnwrap(t *testing.T) {
 	cause := errors.New("cause")
 	wrappedErr := Wrap(cause, "wrapper")
